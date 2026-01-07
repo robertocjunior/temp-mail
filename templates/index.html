@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temp Mail Manager</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://rsms.me/inter/inter.css');
+        :root { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="theme-light">
+    <div class="page">
+        <header class="navbar navbar-expand-md navbar-light d-print-none">
+            <div class="container-xl">
+                <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+                    <i class="fa-solid fa-envelope-open-text text-blue me-2"></i>
+                    Temp Mail Manager
+                </h1>
+                <div class="navbar-nav flex-row order-md-last">
+                    <div class="nav-item">
+                        <form action="/api/generate" method="POST">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-plus me-2"></i> Gerar Novo Email
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-wrapper">
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Seus Emails Temporários</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table card-table table-vcenter text-nowrap datatable">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Expira em</th>
+                                        <th>Criado em</th>
+                                        <th class="text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{range .}}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="user-select-all font-monospace me-2" id="email-{{.ID}}">{{.Alias}}</span>
+                                                <a href="#" class="text-muted" onclick="copyToClipboard('{{.Alias}}')" title="Copiar">
+                                                    <i class="fa-regular fa-copy"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {{if eq .Status "active"}}
+                                                <span class="status status-green">Ativo</span>
+                                            {{else if eq .Status "inactive"}}
+                                                <span class="status status-orange">Pausado</span>
+                                            {{else}}
+                                                <span class="status status-red">Expirado</span>
+                                            {{end}}
+                                        </td>
+                                        <td>
+                                            {{if eq .Status "active"}}
+                                                <span class="text-warning countdown" data-time="{{.ExpiresAt.Format "2006-01-02T15:04:05Z07:00"}}">
+                                                    Calculando...
+                                                </span>
+                                            {{else}}
+                                                <span class="text-muted">-</span>
+                                            {{end}}
+                                        </td>
+                                        <td class="text-muted">
+                                            {{.CreatedAt.Format "02/01/06 15:04"}}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-list justify-content-end">
+                                                {{if eq .Status "active"}}
+                                                    <form action="/api/renew" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="id" value="{{.ID}}">
+                                                        <button type="submit" class="btn btn-ghost-primary btn-sm" title="Renovar por +1 hora">
+                                                            <i class="fa-solid fa-clock-rotate-left"></i> +1h
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <form action="/api/toggle" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="id" value="{{.ID}}">
+                                                        <button type="submit" class="btn btn-ghost-warning btn-sm" title="Pausar">
+                                                            <i class="fa-solid fa-pause"></i>
+                                                        </button>
+                                                    </form>
+
+                                                    <form action="/api/delete" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="id" value="{{.ID}}">
+                                                        <button type="submit" class="btn btn-ghost-danger btn-sm" title="Excluir Agora">
+                                                            <i class="fa-solid fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                {{else if eq .Status "inactive"}}
+                                                    <form action="/api/toggle" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="id" value="{{.ID}}">
+                                                        <button type="submit" class="btn btn-ghost-success btn-sm" title="Reativar">
+                                                            <i class="fa-solid fa-play"></i>
+                                                        </button>
+                                                    </form>
+                                                {{else}}
+                                                    <form action="/api/recreate" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="id" value="{{.ID}}">
+                                                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                            <i class="fa-solid fa-recycle me-1"></i> Restaurar
+                                                        </button>
+                                                    </form>
+                                                {{end}}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                            {{if not .}}
+                            <div class="empty">
+                                <div class="empty-icon"><i class="fa-regular fa-envelope fa-2x"></i></div>
+                                <p class="empty-title">Nenhum email criado</p>
+                                <p class="empty-subtitle text-muted">
+                                    Gere um novo email temporário para começar a receber mensagens.
+                                </p>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="footer footer-transparent d-print-none">
+                <div class="container-xl">
+                    <div class="row text-center align-items-center flex-row-reverse">
+                        <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                            <ul class="list-inline list-inline-dots mb-0">
+                                <li class="list-inline-item">
+                                    Temp Mail Cloudflare
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0/dist/js/tabler.min.js"></script>
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Email copiado: " + text);
+            });
+        }
+
+        // Script simples para atualizar o countdown
+        function updateCountdowns() {
+            const elements = document.querySelectorAll('.countdown');
+            elements.forEach(el => {
+                const expireTime = new Date(el.dataset.time).getTime();
+                const now = new Date().getTime();
+                const distance = expireTime - now;
+
+                if (distance < 0) {
+                    el.innerHTML = "Expirando...";
+                    el.classList.add("text-danger");
+                } else {
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    el.innerHTML = minutes + "m " + seconds + "s";
+                }
+            });
+        }
+        
+        setInterval(updateCountdowns, 1000);
+        updateCountdowns();
+    </script>
+</body>
+</html>
